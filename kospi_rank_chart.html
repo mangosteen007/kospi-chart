@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KOSPI 시가총액 순위 변동</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Noto+Sans+KR:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Inter", "Noto Sans KR", sans-serif;
+    background: #f8f8f6; color: #1a1a1a; min-height: 100vh;
+    display: flex; justify-content: center;
+  }
+  #app { width: 100%; max-width: 1400px; padding: 40px 24px; }
+  h1 { font-size: 20px; font-weight: 500; color: #1a1a1a; margin-bottom: 24px; letter-spacing: -0.3px; text-align: center; }
+  #controls { display: flex; align-items: center; justify-content: space-between; margin-bottom: 48px; gap: 10px; }
+  #ctrl-left { display: flex; gap: 8px; }
+  #ctrl-center { display: flex; justify-content: center; flex: 1; }
+  #ctrl-right { display: flex; gap: 8px; align-items: center; justify-content: flex-end; }
+  input[type="text"] {
+    background: #fff; border: 0.5px solid #d0d0d0; border-radius: 8px;
+    color: #1a1a1a; font-size: 13px; font-family: "Inter", "Noto Sans KR", sans-serif;
+    padding: 7px 12px; width: 150px; outline: none;
+  }
+  input[type="text"]:focus { border-color: #999; }
+  .btn {
+    background: transparent; border: 0.5px solid #d0d0d0; border-radius: 8px;
+    color: #888; font-size: 12px; font-family: "Inter", "Noto Sans KR", sans-serif;
+    padding: 7px 14px; cursor: pointer;
+  }
+  .btn:hover { background: #efefef; color: #1a1a1a; }
+  .btn.on { background: #efefef; color: #1a1a1a; border-color: #aaa; }
+  #range-wrap { display: flex; gap: 8px; align-items: center; }
+  #range-wrap label { font-size: 12px; color: #888; }
+  select {
+    background: #fff; border: 0.5px solid #d0d0d0; border-radius: 8px;
+    color: #555; font-size: 12px; font-family: "Inter", "Noto Sans KR", sans-serif;
+    padding: 7px 10px; cursor: pointer; outline: none;
+  }
+  #chart-wrap { overflow-x: auto; padding: 0 0; box-sizing: border-box; }
+  svg text { font-family: "Inter", "Noto Sans KR", sans-serif; }
+  #tooltip {
+    position: fixed; background: #fff; border: 0.5px solid #d0d0d0;
+    border-radius: 8px; padding: 8px 12px; font-size: 12px;
+    font-family: "Inter", "Noto Sans KR", sans-serif;
+    color: #1a1a1a; pointer-events: none; display: none; z-index: 999;
+    line-height: 1.7; box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  }
+  #loading { display: flex; align-items: center; justify-content: center; height: 300px; color: #aaa; font-size: 14px; }
+  #error { color: #c75c2a; font-size: 13px; padding: 20px 0; }
+</style>
+</head>
+<body>
+<div id="app">
+  <h1>KOSPI 시가총액 순위 변동 TOP 30</h1>
+
+  <div id="controls" style="display:none">
+    <div id="ctrl-left">
+      <button class="btn on" id="btn-all">전체</button>
+      <button class="btn" id="btn-rise">순위 상승</button>
+      <button class="btn" id="btn-fall">순위 하락</button>
+    </div>
+    <div id="ctrl-right">
+      <input type="text" id="search" placeholder="종목 검색...">
+      <select id="range-sel">
+        <option value="10">최근 10일</option>
+        <option value="30">최근 30일</option>
+        <option value="60" selected>최근 60일</option>
+        <option value="90">최근 90일</option>
+      </select>
+    </div>
+  </div>
+  <div id="loading">rank_data.json 로딩 중...</div>
+  <div id="error" style="display:none"></div>
+  <div id="chart-wrap" style="display:none"></div>
+</div>
+<div id="tooltip"></div>
+
+<script>
+const PALETTE = [
+  "#1766c1","#0d8c6e","#c75c2a","#8a44b5","#2a7d46","#b54471",
+  "#b07020","#3a6e9e","#7a6a10","#1a7a3a","#4a5e9e","#9e3a5e",
+  "#1a8a9e","#7a3a2e","#3a7a3a","#6a4a9e","#9e6a1a","#1a4a7a",
+  "#7a1a4a","#4a7a1a","#2a5a8a","#8a2a5a","#5a8a2a","#1a6a5a",
+  "#6a1a7a","#7a6a2a","#2a7a6a","#5a2a8a","#8a5a2a","#2a8a5a",
+];
+
+let rawData = null;
+let filter = "all";
+let searchTerm = "";
+let rangeN = 60;
+let highlighted = null;
+
+async function loadData() {
+  try {
+    const res = await fetch("rank_data.json");
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    rawData = await res.json();
+    document.getElementById("loading").style.display = "none";
+    document.getElementById("chart-wrap").style.display = "block";
+    document.getElementById("controls").style.display = "flex";
+    draw();
+  } catch(e) {
+    document.getElementById("loading").style.display = "none";
+    document.getElementById("error").style.display = "block";
+    document.getElementById("error").textContent =
+      `데이터 로드 실패: ${e.message} — 같은 폴더에 rank_data.json이 있는지 확인하세요.`;
+  }
+}
+
+function getFilteredDates() {
+  if (!rawData) return [];
+  const all = rawData.dates;
+  if (rangeN === 0) return all;
+  return all.slice(-rangeN);
+}
+
+function getColorMap() {
+  const names = Object.keys(rawData.companies);
+  const map = {};
+  names.forEach((n, i) => map[n] = PALETTE[i % PALETTE.length]);
+  return map;
+}
+
+function isActive(name, dates) {
+  const ranks = rawData.companies[name].ranks;
+  const allDates = rawData.dates;
+  const idxFirst = allDates.indexOf(dates[0]);
+  const idxLast  = allDates.indexOf(dates[dates.length-1]);
+  const firstRank = ranks[idxFirst];
+  const lastRank  = ranks[idxLast];
+  if (searchTerm && !name.includes(searchTerm)) return false;
+  if (filter === "rise") return firstRank !== null && lastRank !== null && lastRank < firstRank;
+  if (filter === "fall") return firstRank !== null && lastRank !== null && lastRank > firstRank;
+  return true;
+}
+
+// 순위 그룹별 opacity: 1~10 진한색, 11~20 중간, 21~30 연한색
+function getGroupOpacity(rank) {
+  if (rank === null) return 1;
+  if (rank <= 10) return 1;
+  if (rank <= 20) return 0.5;
+  return 0.2;
+}
+
+function draw() {
+  const wrap = document.getElementById("chart-wrap");
+  const dates = getFilteredDates();
+  if (!dates.length) return;
+
+  const colorMap = getColorMap();
+  const allDates = rawData.dates;
+  const companies = rawData.companies;
+  const names = Object.keys(companies);
+
+  const visible = names.filter(name =>
+    dates.some(d => companies[name].ranks[allDates.indexOf(d)] !== null)
+  );
+
+  let maxRank = 0;
+  visible.forEach(name => {
+    dates.forEach(d => {
+      const r = companies[name].ranks[allDates.indexOf(d)];
+      if (r !== null && r > maxRank) maxRank = r;
+    });
+  });
+
+  const PL = 52, PR = 200, PT = 28, PB = 16;
+  const ROW_H = 16;
+  const FIXED_W = 1100;
+  const colW = Math.max(4, Math.floor((FIXED_W - PL - PR) / Math.max(dates.length - 1, 1)));
+  const W = FIXED_W;
+  const H = maxRank * ROW_H + PT + PB;
+
+  const ns = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(ns, "svg");
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  svg.setAttribute("width", W);
+  svg.setAttribute("height", H);
+  svg.style.display = "block";
+  svg.style.margin = "0 auto";
+
+  // 컨트롤 너비를 SVG 너비에 맞춤
+  const controls = document.getElementById("controls");
+  if (controls) controls.style.width = W + "px", controls.style.margin = "0 auto";
+
+  // 가로 rank 배경선
+  for (let r = 1; r <= maxRank; r++) {
+    const y = PT + (r - 0.5) * ROW_H;
+    const l = document.createElementNS(ns, "line");
+    l.setAttribute("x1", PL - 4); l.setAttribute("x2", W - PR + 4);
+    l.setAttribute("y1", y); l.setAttribute("y2", y);
+    l.setAttribute("stroke", r % 5 === 0 ? "rgba(0,0,0,0.1)" : "rgba(0,0,0,0.04)");
+    l.setAttribute("stroke-width", "0.5");
+    svg.appendChild(l);
+    if (r % 5 === 0 || r === 1) {
+      const t = document.createElementNS(ns, "text");
+      t.setAttribute("x", PL - 8); t.setAttribute("y", y + 4);
+      t.setAttribute("text-anchor", "end");
+      t.setAttribute("font-size", "10");
+      t.setAttribute("fill", "#bbb");
+      t.textContent = r + "위";
+      svg.appendChild(t);
+    }
+  }
+
+  // 날짜 레이블
+  const labelStep = Math.ceil(dates.length / 12);
+  dates.forEach((d, i) => {
+    if (i % labelStep !== 0 && i !== dates.length - 1) return;
+    const x = PL + i * colW;
+    const t = document.createElementNS(ns, "text");
+    t.setAttribute("x", x); t.setAttribute("y", PT - 8);
+    t.setAttribute("text-anchor", "middle");
+    t.setAttribute("font-size", "10");
+    t.setAttribute("fill", "#bbb");
+    t.textContent = `${d.slice(4,6)}/${d.slice(6)}`;
+    svg.appendChild(t);
+  });
+
+  // 선 그리기
+  visible.forEach(name => {
+    const active = isActive(name, dates);
+    const color = colorMap[name];
+    const opacity = active ? 1 : 0.07;
+    const strokeW = active ? (highlighted === name ? 2.5 : 1.5) : 0.5;
+
+    let segments = [], cur = [];
+    dates.forEach((d, i) => {
+      const r = companies[name].ranks[allDates.indexOf(d)];
+      if (r !== null) { cur.push({ i, r }); }
+      else { if (cur.length) { segments.push(cur); cur = []; } }
+    });
+    if (cur.length) segments.push(cur);
+
+    segments.forEach(seg => {
+      if (seg.length < 2) return;
+      let pathD = "";
+      seg.forEach(({ i, r }) => {
+        const x = PL + i * colW;
+        const y = PT + (r - 0.5) * ROW_H;
+        pathD += (pathD === "" ? "M" : "L") + `${x},${y} `;
+      });
+      const midRank = seg[Math.floor(seg.length / 2)].r;
+      const groupOpacity = getGroupOpacity(midRank);
+
+      const path = document.createElementNS(ns, "path");
+      path.setAttribute("d", pathD.trim());
+      path.setAttribute("fill", "none");
+      path.setAttribute("stroke", color);
+      path.setAttribute("stroke-width", strokeW);
+      path.setAttribute("stroke-opacity", active ? groupOpacity : 0.07);
+      path.setAttribute("stroke-linecap", "round");
+      path.setAttribute("stroke-linejoin", "round");
+      path.style.cursor = "pointer";
+      path.addEventListener("mouseenter", e => { highlighted = name; showTooltip(e, name, dates); draw(); });
+      path.addEventListener("mouseleave", () => { highlighted = null; hideTooltip(); draw(); });
+      svg.appendChild(path);
+    });
+
+    // 마지막 점 + 레이블
+    if (active) {
+      const last = dates[dates.length - 1];
+      const r = companies[name].ranks[allDates.indexOf(last)];
+      if (r !== null) {
+        const x = PL + (dates.length - 1) * colW;
+        const y = PT + (r - 0.5) * ROW_H;
+        const c = document.createElementNS(ns, "circle");
+        c.setAttribute("cx", x); c.setAttribute("cy", y); c.setAttribute("r", 3);
+        c.setAttribute("fill", color);
+        svg.appendChild(c);
+        const capVal = companies[name].caps[allDates.indexOf(last)];
+        const capStr = capVal ? ` (${(capVal / 1e12).toFixed(0)}조)` : "";
+        const t = document.createElementNS(ns, "text");
+        t.setAttribute("x", x + 7); t.setAttribute("y", y + 4);
+        t.setAttribute("font-size", "11");
+        t.setAttribute("fill", color);
+        t.textContent = `${name} ${r}위${capStr}`;
+        svg.appendChild(t);
+      }
+    }
+  });
+
+  wrap.innerHTML = "";
+  wrap.appendChild(svg);
+}
+
+function showTooltip(e, name, dates) {
+  const allDates = rawData.dates;
+  const ranks = rawData.companies[name].ranks;
+  const caps  = rawData.companies[name].caps;
+  const r1 = ranks[allDates.indexOf(dates[0])];
+  const r2 = ranks[allDates.indexOf(dates[dates.length-1])];
+  const c2 = caps[allDates.indexOf(dates[dates.length-1])];
+  const diff = (r1 !== null && r2 !== null) ? r1 - r2 : null;
+  const arrow = diff === null ? "—" : diff > 0 ? `▲${diff}` : diff < 0 ? `▼${Math.abs(diff)}` : "─";
+  const arrowColor = diff > 0 ? "#1a7a4a" : diff < 0 ? "#c75c2a" : "#888";
+  const capStr = c2 ? (c2 / 1e12).toFixed(1) + "조원" : "—";
+  document.getElementById("tooltip").innerHTML =
+    `<strong>${name}</strong><br>` +
+    `현재 순위: ${r2 !== null ? r2 + "위" : "30위 밖"}<br>` +
+    `시가총액: ${capStr}<br>` +
+    `기간 변동: ${r1 !== null ? r1 + "위" : "—"} → ${r2 !== null ? r2 + "위" : "—"} <span style="color:${arrowColor}">${arrow}</span>`;
+  document.getElementById("tooltip").style.display = "block";
+  moveTooltip(e);
+}
+function moveTooltip(e) {
+  const tt = document.getElementById("tooltip");
+  tt.style.left = (e.clientX + 14) + "px";
+  tt.style.top  = (e.clientY - 10) + "px";
+}
+function hideTooltip() { document.getElementById("tooltip").style.display = "none"; }
+document.addEventListener("mousemove", moveTooltip);
+
+document.getElementById("search").addEventListener("input", e => { searchTerm = e.target.value.trim(); draw(); });
+["btn-all","btn-rise","btn-fall"].forEach(id => {
+  document.getElementById(id).addEventListener("click", () => {
+    filter = id.replace("btn-","");
+    document.querySelectorAll(".btn").forEach(b => b.classList.remove("on"));
+    document.getElementById(id).classList.add("on");
+    draw();
+  });
+});
+document.getElementById("range-sel").addEventListener("change", e => { rangeN = parseInt(e.target.value); draw(); });
+
+loadData();
+</script>
+</body>
+</html>
