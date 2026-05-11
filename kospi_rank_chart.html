@@ -13,7 +13,7 @@
     --muted:#334155; --accent:#38bdf8; --up:#10b981; --down:#f43f5e;
   }
   * { margin:0; padding:0; box-sizing:border-box; }
-  body { font-family:'Noto Sans KR',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; padding:20px 24px; }
+  body { font-family:'Noto Sans KR',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; padding:24px 32px; }
 
   .header { display:flex; justify-content:space-between; align-items:flex-end; border-bottom:1px solid var(--border); padding-bottom:14px; margin-bottom:20px; }
   .header h1 { font-size:18px; font-weight:700; letter-spacing:-0.5px; }
@@ -42,7 +42,7 @@
   select option { background:var(--surface2); }
   .controls-right { margin-left:auto; display:flex; gap:10px; align-items:center; }
 
-  .chart-wrap { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px; overflow-x:auto; }
+  .chart-wrap { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:24px; overflow-x:auto; }
   svg text { font-family:'JetBrains Mono',monospace; }
 
   #tooltip {
@@ -201,6 +201,7 @@ function draw() {
   svg.setAttribute("width", W);
   svg.setAttribute("height", H);
   svg.style.display = "block";
+  svg.style.margin = "0 auto";
 
   const controls = document.getElementById("controls");
   if (controls) { controls.style.width = W + "px"; controls.style.margin = "0"; }
