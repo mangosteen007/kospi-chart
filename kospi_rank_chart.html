@@ -3,88 +3,112 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>KOSPI 시가총액 순위 변동</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Noto+Sans+KR:wght@400;500&display=swap" rel="stylesheet">
+<title>KOSPI 시가총액 순위 변동 TOP 30</title>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    font-family: "Inter", "Noto Sans KR", sans-serif;
-    background: #f8f8f6; color: #1a1a1a; min-height: 100vh;
-    display: flex; justify-content: center;
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap');
+
+  :root {
+    --bg:#090d18; --surface:#111827; --surface2:#1a2235;
+    --border:#1e2d45; --text:#e2e8f0; --dim:#64748b;
+    --muted:#334155; --accent:#38bdf8; --up:#10b981; --down:#f43f5e;
   }
-  #app { width: 100%; max-width: 1400px; padding: 40px 24px; }
-  h1 { font-size: 20px; font-weight: 500; color: #1a1a1a; margin-bottom: 24px; letter-spacing: -0.3px; text-align: center; }
-  #controls { display: flex; align-items: center; justify-content: space-between; margin-bottom: 48px; gap: 10px; }
-  #ctrl-left { display: flex; gap: 8px; }
-  #ctrl-center { display: flex; justify-content: center; flex: 1; }
-  #ctrl-right { display: flex; gap: 8px; align-items: center; justify-content: flex-end; }
-  input[type="text"] {
-    background: #fff; border: 0.5px solid #d0d0d0; border-radius: 8px;
-    color: #1a1a1a; font-size: 13px; font-family: "Inter", "Noto Sans KR", sans-serif;
-    padding: 7px 12px; width: 150px; outline: none;
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Noto Sans KR',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; padding:20px 24px; }
+
+  .header { display:flex; justify-content:space-between; align-items:flex-end; border-bottom:1px solid var(--border); padding-bottom:14px; margin-bottom:16px; }
+  .header h1 { font-size:18px; font-weight:700; letter-spacing:-0.5px; }
+  .header p  { font-size:11px; color:var(--dim); margin-top:4px; font-family:'JetBrains Mono',monospace; }
+  .badge { background:linear-gradient(135deg,#0ea5e9,#2563eb); color:#fff; font-size:11px; font-weight:600; padding:3px 12px; border-radius:20px; white-space:nowrap; align-self:center; }
+
+  .controls { display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap; align-items:center; }
+  .btn-group { display:flex; background:var(--surface); border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+  .btn-group button { padding:5px 14px; background:transparent; border:none; color:var(--dim); font-size:12px; cursor:pointer; font-family:'Noto Sans KR',sans-serif; transition:all 0.15s; }
+  .btn-group button.active { background:var(--accent); color:#0a0e1a; font-weight:700; }
+  .btn-group button:hover:not(.active) { color:var(--text); }
+  .search-input {
+    background:var(--surface); border:1px solid var(--border); border-radius:8px;
+    color:var(--text); padding:5px 12px; font-size:12px; font-family:'Noto Sans KR',sans-serif;
+    outline:none; width:140px; transition:border-color 0.15s;
   }
-  input[type="text"]:focus { border-color: #999; }
-  .btn {
-    background: transparent; border: 0.5px solid #d0d0d0; border-radius: 8px;
-    color: #888; font-size: 12px; font-family: "Inter", "Noto Sans KR", sans-serif;
-    padding: 7px 14px; cursor: pointer;
-  }
-  .btn:hover { background: #efefef; color: #1a1a1a; }
-  .btn.on { background: #efefef; color: #1a1a1a; border-color: #aaa; }
-  #range-wrap { display: flex; gap: 8px; align-items: center; }
-  #range-wrap label { font-size: 12px; color: #888; }
+  .search-input:focus { border-color:var(--accent); }
+  .search-input::placeholder { color:var(--dim); }
   select {
-    background: #fff; border: 0.5px solid #d0d0d0; border-radius: 8px;
-    color: #555; font-size: 12px; font-family: "Inter", "Noto Sans KR", sans-serif;
-    padding: 7px 10px; cursor: pointer; outline: none;
+    background:var(--surface); border:1px solid var(--border); border-radius:8px;
+    color:var(--text); padding:5px 28px 5px 12px; font-size:12px; cursor:pointer;
+    font-family:'Noto Sans KR',sans-serif; outline:none; appearance:none;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat:no-repeat; background-position:right 10px center;
   }
-  #chart-wrap { overflow-x: auto; padding: 0 0; box-sizing: border-box; }
-  svg text { font-family: "Inter", "Noto Sans KR", sans-serif; }
+  select option { background:var(--surface2); }
+  .controls-right { margin-left:auto; display:flex; gap:10px; align-items:center; }
+
+  .chart-wrap { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px; overflow-x:auto; }
+  svg text { font-family:'JetBrains Mono',monospace; }
+
   #tooltip {
-    position: fixed; background: #fff; border: 0.5px solid #d0d0d0;
-    border-radius: 8px; padding: 8px 12px; font-size: 12px;
-    font-family: "Inter", "Noto Sans KR", sans-serif;
-    color: #1a1a1a; pointer-events: none; display: none; z-index: 999;
-    line-height: 1.7; box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    position:fixed; display:none; z-index:999; pointer-events:none;
+    background:rgba(9,13,24,0.97); border:1px solid var(--border);
+    border-radius:10px; padding:11px 13px; min-width:200px;
+    box-shadow:0 8px 32px rgba(0,0,0,0.6); font-size:12px; line-height:1.8;
   }
-  #loading { display: flex; align-items: center; justify-content: center; height: 300px; color: #aaa; font-size: 14px; }
-  #error { color: #c75c2a; font-size: 13px; padding: 20px 0; }
+  .tip-name { font-weight:700; color:var(--accent); margin-bottom:4px; font-family:'Noto Sans KR',sans-serif; }
+  .tip-row { display:flex; justify-content:space-between; gap:16px; }
+  .tip-label { color:var(--dim); font-size:11px; }
+  .tip-val { color:var(--text); font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:600; }
+  .up { color:var(--up); }
+  .down { color:var(--down); }
+
+  #loading {
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    height:300px; gap:14px; color:var(--dim); font-size:13px;
+  }
+  .spinner { width:36px; height:36px; border:3px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:spin 0.8s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  #error { color:var(--down); font-size:13px; padding:20px 0; }
 </style>
 </head>
 <body>
-<div id="app">
-  <h1>KOSPI 시가총액 순위 변동 TOP 30 (낮 12시 갱신) </h1>
 
-  <div id="controls" style="display:none">
-    <div id="ctrl-left">
-      <button class="btn on" id="btn-all">전체</button>
-      <button class="btn" id="btn-rise">순위 상승</button>
-      <button class="btn" id="btn-fall">순위 하락</button>
-    </div>
-    <div id="ctrl-right">
-      <input type="text" id="search" placeholder="종목 검색...">
-      <select id="range-sel">
-        <option value="10">최근 10일</option>
-        <option value="30">최근 30일</option>
-        <option value="60" selected>최근 60일</option>
-        <option value="90">최근 90일</option>
-      </select>
-    </div>
+<div class="header">
+  <div>
+    <h1>📈 KOSPI 시가총액 순위 변동 TOP 30</h1>
+    <p id="header-sub">데이터 로딩 중...</p>
   </div>
-  <div id="loading">rank_data.json 로딩 중...</div>
-  <div id="error" style="display:none"></div>
-  <div id="chart-wrap" style="display:none"></div>
+  <span class="badge">KOSPI</span>
 </div>
+
+<div class="controls" id="controls" style="display:none">
+  <div class="btn-group">
+    <button class="active" id="btn-all">전체</button>
+    <button id="btn-rise">순위 상승</button>
+    <button id="btn-fall">순위 하락</button>
+  </div>
+  <div class="controls-right">
+    <input type="text" class="search-input" id="search" placeholder="종목 검색...">
+    <select id="range-sel">
+      <option value="10">최근 10일</option>
+      <option value="30">최근 30일</option>
+      <option value="60" selected>최근 60일</option>
+      <option value="90">최근 90일</option>
+    </select>
+  </div>
+</div>
+
+<div class="chart-wrap">
+  <div id="loading"><div class="spinner"></div><p>rank_data.json 로딩 중...</p></div>
+  <div id="error" style="display:none"></div>
+  <div id="chart-inner" style="display:none"></div>
+</div>
+
 <div id="tooltip"></div>
 
 <script>
 const PALETTE = [
-  "#1766c1","#0d8c6e","#c75c2a","#8a44b5","#2a7d46","#b54471",
-  "#b07020","#3a6e9e","#7a6a10","#1a7a3a","#4a5e9e","#9e3a5e",
-  "#1a8a9e","#7a3a2e","#3a7a3a","#6a4a9e","#9e6a1a","#1a4a7a",
-  "#7a1a4a","#4a7a1a","#2a5a8a","#8a2a5a","#5a8a2a","#1a6a5a",
-  "#6a1a7a","#7a6a2a","#2a7a6a","#5a2a8a","#8a5a2a","#2a8a5a",
+  "#38bdf8","#34d399","#fb923c","#a78bfa","#f472b6","#facc15",
+  "#60a5fa","#4ade80","#f87171","#e879f9","#2dd4bf","#fbbf24",
+  "#818cf8","#86efac","#fca5a5","#c4b5fd","#6ee7b7","#fde68a",
+  "#93c5fd","#a5f3fc","#fbcfe8","#ddd6fe","#bbf7d0","#fed7aa",
+  "#e0f2fe","#d1fae5","#ffe4e6","#f3e8ff","#ecfdf5","#fefce8",
 ];
 
 let rawData = null;
@@ -99,22 +123,22 @@ async function loadData() {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     rawData = await res.json();
     document.getElementById("loading").style.display = "none";
-    document.getElementById("chart-wrap").style.display = "block";
+    document.getElementById("chart-inner").style.display = "block";
     document.getElementById("controls").style.display = "flex";
+    const dates = rawData.dates;
+    document.getElementById("header-sub").textContent =
+      `${dates[0].slice(0,4)}.${dates[0].slice(4,6)}.${dates[0].slice(6)} ~ ${dates[dates.length-1].slice(0,4)}.${dates[dates.length-1].slice(4,6)}.${dates[dates.length-1].slice(6)} · ${dates.length}영업일`;
     draw();
   } catch(e) {
     document.getElementById("loading").style.display = "none";
     document.getElementById("error").style.display = "block";
-    document.getElementById("error").textContent =
-      `데이터 로드 실패: ${e.message} — 같은 폴더에 rank_data.json이 있는지 확인하세요.`;
+    document.getElementById("error").textContent = `데이터 로드 실패: ${e.message}`;
   }
 }
 
 function getFilteredDates() {
   if (!rawData) return [];
-  const all = rawData.dates;
-  if (rangeN === 0) return all;
-  return all.slice(-rangeN);
+  return rawData.dates.slice(-rangeN);
 }
 
 function getColorMap() {
@@ -127,17 +151,14 @@ function getColorMap() {
 function isActive(name, dates) {
   const ranks = rawData.companies[name].ranks;
   const allDates = rawData.dates;
-  const idxFirst = allDates.indexOf(dates[0]);
-  const idxLast  = allDates.indexOf(dates[dates.length-1]);
-  const firstRank = ranks[idxFirst];
-  const lastRank  = ranks[idxLast];
+  const r1 = ranks[allDates.indexOf(dates[0])];
+  const r2 = ranks[allDates.indexOf(dates[dates.length-1])];
   if (searchTerm && !name.includes(searchTerm)) return false;
-  if (filter === "rise") return firstRank !== null && lastRank !== null && lastRank < firstRank;
-  if (filter === "fall") return firstRank !== null && lastRank !== null && lastRank > firstRank;
+  if (filter === "rise") return r1 !== null && r2 !== null && r2 < r1;
+  if (filter === "fall") return r1 !== null && r2 !== null && r2 > r1;
   return true;
 }
 
-// 순위 그룹별 opacity: 1~10 진한색, 11~20 중간, 21~30 연한색
 function getGroupOpacity(rank) {
   if (rank === null) return 1;
   if (rank <= 10) return 1;
@@ -146,7 +167,7 @@ function getGroupOpacity(rank) {
 }
 
 function draw() {
-  const wrap = document.getElementById("chart-wrap");
+  const wrap = document.getElementById("chart-inner");
   const dates = getFilteredDates();
   if (!dates.length) return;
 
@@ -167,8 +188,8 @@ function draw() {
     });
   });
 
-  const PL = 52, PR = 200, PT = 28, PB = 16;
-  const ROW_H = 16;
+  const PL = 52, PR = 210, PT = 30, PB = 16;
+  const ROW_H = 18;
   const FIXED_W = 1100;
   const colW = Math.max(4, Math.floor((FIXED_W - PL - PR) / Math.max(dates.length - 1, 1)));
   const W = FIXED_W;
@@ -180,27 +201,29 @@ function draw() {
   svg.setAttribute("width", W);
   svg.setAttribute("height", H);
   svg.style.display = "block";
-  svg.style.margin = "0 auto";
 
-  // 컨트롤 너비를 SVG 너비에 맞춤
   const controls = document.getElementById("controls");
-  if (controls) controls.style.width = W + "px", controls.style.margin = "0 auto";
+  if (controls) { controls.style.width = W + "px"; controls.style.margin = "0"; }
 
-  // 가로 rank 배경선
+  // 배경 그리드
   for (let r = 1; r <= maxRank; r++) {
     const y = PT + (r - 0.5) * ROW_H;
-    const l = document.createElementNS(ns, "line");
-    l.setAttribute("x1", PL - 4); l.setAttribute("x2", W - PR + 4);
-    l.setAttribute("y1", y); l.setAttribute("y2", y);
-    l.setAttribute("stroke", r % 5 === 0 ? "rgba(0,0,0,0.1)" : "rgba(0,0,0,0.04)");
-    l.setAttribute("stroke-width", "0.5");
-    svg.appendChild(l);
+    // 5위 단위 강조선
+    if (r % 5 === 0) {
+      const l = document.createElementNS(ns, "line");
+      l.setAttribute("x1", PL - 4); l.setAttribute("x2", W - PR + 4);
+      l.setAttribute("y1", y); l.setAttribute("y2", y);
+      l.setAttribute("stroke", "rgba(255,255,255,0.07)");
+      l.setAttribute("stroke-width", "0.5");
+      l.setAttribute("stroke-dasharray", "3,3");
+      svg.appendChild(l);
+    }
     if (r % 5 === 0 || r === 1) {
       const t = document.createElementNS(ns, "text");
       t.setAttribute("x", PL - 8); t.setAttribute("y", y + 4);
       t.setAttribute("text-anchor", "end");
       t.setAttribute("font-size", "10");
-      t.setAttribute("fill", "#bbb");
+      t.setAttribute("fill", "#334155");
       t.textContent = r + "위";
       svg.appendChild(t);
     }
@@ -212,10 +235,10 @@ function draw() {
     if (i % labelStep !== 0 && i !== dates.length - 1) return;
     const x = PL + i * colW;
     const t = document.createElementNS(ns, "text");
-    t.setAttribute("x", x); t.setAttribute("y", PT - 8);
+    t.setAttribute("x", x); t.setAttribute("y", PT - 10);
     t.setAttribute("text-anchor", "middle");
     t.setAttribute("font-size", "10");
-    t.setAttribute("fill", "#bbb");
+    t.setAttribute("fill", "#334155");
     t.textContent = `${d.slice(4,6)}/${d.slice(6)}`;
     svg.appendChild(t);
   });
@@ -224,8 +247,7 @@ function draw() {
   visible.forEach(name => {
     const active = isActive(name, dates);
     const color = colorMap[name];
-    const opacity = active ? 1 : 0.07;
-    const strokeW = active ? (highlighted === name ? 2.5 : 1.5) : 0.5;
+    const strokeW = active ? (highlighted === name ? 2.5 : 1.6) : 0.5;
 
     let segments = [], cur = [];
     dates.forEach((d, i) => {
@@ -251,7 +273,7 @@ function draw() {
       path.setAttribute("fill", "none");
       path.setAttribute("stroke", color);
       path.setAttribute("stroke-width", strokeW);
-      path.setAttribute("stroke-opacity", active ? groupOpacity : 0.07);
+      path.setAttribute("stroke-opacity", active ? groupOpacity : 0.05);
       path.setAttribute("stroke-linecap", "round");
       path.setAttribute("stroke-linejoin", "round");
       path.style.cursor = "pointer";
@@ -260,7 +282,6 @@ function draw() {
       svg.appendChild(path);
     });
 
-    // 마지막 점 + 레이블
     if (active) {
       const last = dates[dates.length - 1];
       const r = companies[name].ranks[allDates.indexOf(last)];
@@ -274,9 +295,10 @@ function draw() {
         const capVal = companies[name].caps[allDates.indexOf(last)];
         const capStr = capVal ? ` (${(capVal / 1e12).toFixed(0)}조)` : "";
         const t = document.createElementNS(ns, "text");
-        t.setAttribute("x", x + 7); t.setAttribute("y", y + 4);
+        t.setAttribute("x", x + 8); t.setAttribute("y", y + 4);
         t.setAttribute("font-size", "11");
         t.setAttribute("fill", color);
+        t.setAttribute("font-family", "Noto Sans KR, sans-serif");
         t.textContent = `${name} ${r}위${capStr}`;
         svg.appendChild(t);
       }
@@ -296,13 +318,13 @@ function showTooltip(e, name, dates) {
   const c2 = caps[allDates.indexOf(dates[dates.length-1])];
   const diff = (r1 !== null && r2 !== null) ? r1 - r2 : null;
   const arrow = diff === null ? "—" : diff > 0 ? `▲${diff}` : diff < 0 ? `▼${Math.abs(diff)}` : "─";
-  const arrowColor = diff > 0 ? "#1a7a4a" : diff < 0 ? "#c75c2a" : "#888";
+  const arrowClass = diff > 0 ? "up" : diff < 0 ? "down" : "";
   const capStr = c2 ? (c2 / 1e12).toFixed(1) + "조원" : "—";
   document.getElementById("tooltip").innerHTML =
-    `<strong>${name}</strong><br>` +
-    `현재 순위: ${r2 !== null ? r2 + "위" : "30위 밖"}<br>` +
-    `시가총액: ${capStr}<br>` +
-    `기간 변동: ${r1 !== null ? r1 + "위" : "—"} → ${r2 !== null ? r2 + "위" : "—"} <span style="color:${arrowColor}">${arrow}</span>`;
+    `<div class="tip-name">${name}</div>` +
+    `<div class="tip-row"><span class="tip-label">현재 순위</span><span class="tip-val">${r2 !== null ? r2 + "위" : "30위 밖"}</span></div>` +
+    `<div class="tip-row"><span class="tip-label">시가총액</span><span class="tip-val">${capStr}</span></div>` +
+    `<div class="tip-row"><span class="tip-label">기간 변동</span><span class="tip-val ${arrowClass}">${r1 !== null ? r1 + "위" : "—"} → ${r2 !== null ? r2 + "위" : "—"} ${arrow}</span></div>`;
   document.getElementById("tooltip").style.display = "block";
   moveTooltip(e);
 }
@@ -318,8 +340,8 @@ document.getElementById("search").addEventListener("input", e => { searchTerm = 
 ["btn-all","btn-rise","btn-fall"].forEach(id => {
   document.getElementById(id).addEventListener("click", () => {
     filter = id.replace("btn-","");
-    document.querySelectorAll(".btn").forEach(b => b.classList.remove("on"));
-    document.getElementById(id).classList.add("on");
+    document.querySelectorAll(".btn-group button").forEach(b => b.classList.remove("active"));
+    document.getElementById(id).classList.add("active");
     draw();
   });
 });
