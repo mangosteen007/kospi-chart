@@ -126,8 +126,7 @@ async function loadData() {
     document.getElementById("chart-inner").style.display = "block";
     document.getElementById("controls").style.display = "flex";
     const dates = rawData.dates;
-    document.getElementById("header-sub").textContent =
-      `${dates[0].slice(0,4)}.${dates[0].slice(4,6)}.${dates[0].slice(6)} ~ ${dates[dates.length-1].slice(0,4)}.${dates[dates.length-1].slice(4,6)}.${dates[dates.length-1].slice(6)} · ${dates.length}영업일`;
+    document.getElementById("header-sub").textContent = "낮 정오 12시 갱신";
     draw();
   } catch(e) {
     document.getElementById("loading").style.display = "none";
