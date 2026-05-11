@@ -198,13 +198,13 @@ function draw() {
   const ns = "http://www.w3.org/2000/svg";
   const svg = document.createElementNS(ns, "svg");
   svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
-  svg.setAttribute("width", W);
+  svg.setAttribute("width", "100%");
   svg.setAttribute("height", H);
   svg.style.display = "block";
   svg.style.margin = "0 auto";
+  svg.style.minWidth = W + "px";
 
-  const controls = document.getElementById("controls");
-  if (controls) { controls.style.width = W + "px"; controls.style.margin = "0"; }
+  // 컨트롤 너비 자동
 
   // 배경 그리드
   for (let r = 1; r <= maxRank; r++) {
