@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 import FinanceDataReader as fdr
 
 # ── 설정 ──────────────────────────────────────────
-START_DATE = "20260401"   # 최초 수집 시작일 (rank_data.json 없을 때만 사용)
+START_DATE = "20260101"   # 최초 수집 시작일 (rank_data.json 없을 때만 사용)
 END_DATE   = "today"      # "today" = 오늘 날짜 자동
 TOP_N      = 30           # 순위 몇 위까지
 OUTPUT     = "rank_data.json"
@@ -147,6 +147,15 @@ if __name__ == "__main__":
             print("기존 데이터와 병합 완료")
         else:
             final = new_data
+
+        # 최근 100일만 유지
+        MAX_DAYS = 100
+        if len(final['dates']) > MAX_DAYS:
+            final['dates'] = final['dates'][-MAX_DAYS:]
+            for name in final['companies']:
+                final['companies'][name]['ranks'] = final['companies'][name]['ranks'][-MAX_DAYS:]
+                final['companies'][name]['caps']  = final['companies'][name]['caps'][-MAX_DAYS:]
+            print(f"최근 {MAX_DAYS}일로 데이터 정리 완료")
 
         with open(OUTPUT, "w", encoding="utf-8") as f:
             json.dump(final, f, ensure_ascii=False, indent=2)
